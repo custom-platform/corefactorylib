@@ -1,4 +1,4 @@
-module github.com/pasqualepunzo/corefactorylib
+module github.com/custom-platform/corefactorylib
 
 go 1.18
 
