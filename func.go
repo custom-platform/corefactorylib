@@ -28,7 +28,7 @@ import (
 func Logga(ctx context.Context, i interface{}, level ...string) {
 
 	// QUI SE VUOI VEDERE IL TESTO IN CHIARO
-	//logtext := true
+	// logtext := true
 	logtext := false
 
 	JobID := ""
