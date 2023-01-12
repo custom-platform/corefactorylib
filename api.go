@@ -189,6 +189,8 @@ func ApiCallGET(ctx context.Context, debug bool, args map[string]string, microse
 
 	// client.Debug = true
 	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	// Set call timeout
+	client.SetTimeout(5 * time.Minute)
 	// Set retry count to non zero to enable retries
 	client.SetRetryCount(2)
 	// You can override initial retry wait time.
@@ -209,7 +211,13 @@ func ApiCallGET(ctx context.Context, debug bool, args map[string]string, microse
 			acceptedStatus[204] = true
 			acceptedStatus[401] = true
 
-			if ok := acceptedStatus[r.StatusCode()]; ok {
+			if err != nil { // HTTP ERRORE
+				Logga(ctx, "Resty call retry, error: "+err.Error())
+				return true // ho ricevuto un errore, quindi faccio retry
+			}
+
+			Logga(ctx, "Resty call retry, code: "+strconv.Itoa(r.StatusCode()))
+			if _, ok := acceptedStatus[r.StatusCode()]; ok {
 				return false
 			} else {
 				return true // ho ricevuto uno status che non è tra quelli accepted, quindi faccio retry
@@ -226,11 +234,13 @@ func ApiCallGET(ctx context.Context, debug bool, args map[string]string, microse
 		SetQueryParams(args).
 		Get(dominio + "/api/" + os.Getenv("coreapiVersion") + routing)
 
+	Logga(ctx, "Resty call ended")
 	if err != nil { // HTTP ERRORE
+		Logga(ctx, "Resty call error: "+err.Error())
 		resStruct.Errore = -1
 		resStruct.Log = "0 " + err.Error()
 	} else {
-
+		Logga(ctx, "Resty call success code: "+strconv.Itoa(res.StatusCode()))
 		// se status ERROR
 		if res.StatusCode() != 200 && res.StatusCode() != 201 && res.StatusCode() != 204 {
 			var restyErr restyError
