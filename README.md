@@ -14,4 +14,4 @@ git push origin --tags
 
 per caricare la lib sul progetto devops:
 
-go get github.com/pasqualepunzo/corefactorylib@v0.1.2
+go get github.com/custom-platform/corefactorylib@v0.1.2
