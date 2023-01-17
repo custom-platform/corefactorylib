@@ -235,7 +235,7 @@ func ApiCallGET(ctx context.Context, debug bool, args map[string]string, microse
 		SetHeader("microservice", microservice).
 		SetAuthToken(token).
 		SetQueryParams(args).
-		Get(dominio + "/api/" + os.Getenv("coreapiVersion") + routing)
+		Get(dominio + "/api/" + os.Getenv("coreApiVersion") + routing)
 
 	Logga(ctx, "Resty call ended")
 	if err != nil { // HTTP ERRORE
