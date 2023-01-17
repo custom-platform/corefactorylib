@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"math/rand"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -60,7 +61,7 @@ func ApiCallPOST(ctx context.Context, debug bool, args []map[string]interface{},
 
 	var resStruct CallGetResponse
 
-	Logga(ctx, dominio+"/api/"+os.Getenv("coreapiVersion")+routing+" - "+microservice)
+	Logga(ctx, dominio+"/api/"+os.Getenv("coreApiVersion")+routing+" - "+microservice)
 
 	var LoggaErrore LoggaErrore
 	LoggaErrore.Errore = 0
@@ -72,6 +73,8 @@ func ApiCallPOST(ctx context.Context, debug bool, args []map[string]interface{},
 	client.SetLogger(&restyLogger)
 
 	client.Debug = true
+	// Set call timeout
+	client.SetTimeout(5 * time.Minute)
 	// Set retry count to non zero to enable retries
 	client.SetRetryCount(2)
 	// You can override initial retry wait time.
@@ -109,7 +112,7 @@ func ApiCallPOST(ctx context.Context, debug bool, args []map[string]interface{},
 		SetHeader("microservice", microservice).
 		SetAuthToken(token).
 		SetBody(args).
-		Post(dominio + "/api/" + os.Getenv("coreapiVersion") + routing)
+		Post(dominio + "/api/" + os.Getenv("coreApiVersion") + routing)
 
 	// fmt.Println(res)
 	// LogJson(res)
@@ -175,7 +178,7 @@ func ApiCallGET(ctx context.Context, debug bool, args map[string]string, microse
 		dominio = "https://" + dominio
 	}
 
-	Logga(ctx, dominio+"/api/"+os.Getenv("coreapiVersion")+routing+" - "+microservice)
+	Logga(ctx, dominio+"/api/"+os.Getenv("coreApiVersion")+routing+" - "+microservice)
 
 	var resStruct CallGetResponse
 
@@ -326,7 +329,7 @@ func ApiCallLOGIN(ctx context.Context, debug bool, args map[string]interface{}, 
 	Logga(ctx, string(jsonString))
 
 	Logga(ctx, "Microservice : "+microservice)
-	Logga(ctx, "Url : "+dominio+"/api/"+os.Getenv("coreapiVersion")+routing)
+	Logga(ctx, "Url : "+dominio+"/api/"+os.Getenv("coreApiVersion")+routing)
 
 	var LoggaErrore LoggaErrore
 	LoggaErrore.Errore = 0
@@ -341,6 +344,33 @@ func ApiCallLOGIN(ctx context.Context, debug bool, args map[string]interface{}, 
 
 	//client.Debug = debug
 	client.Debug = true
+
+	// Set call timeout
+	client.SetTimeout(5 * time.Minute)
+	// Set retry count to non zero to enable retries
+	client.SetRetryCount(2)
+	// You can override initial retry wait time.
+	// Default is 100 milliseconds.
+	client.SetRetryWaitTime(1 * time.Second)
+	// MaxWaitTime can be overridden as well.
+	// Default is 2 seconds.
+	client.AddRetryCondition(
+		// RetryConditionFunc type is for retry condition function
+		// input: non-nil Response OR request execution error
+		func(r *resty.Response, err error) bool {
+			if err != nil { // HTTP ERROR
+				Logga(ctx, "Resty call retry, error: "+err.Error())
+				return true // ho ricevuto un errore, quindi faccio retry
+			}
+			if r.StatusCode() == http.StatusRequestTimeout {
+				Logga(ctx, "Resty call retry, error timeout")
+				return true
+			} else {
+				return false
+			}
+		},
+	)
+
 	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	res, err := client.R().
 		SetHeader("Content-Type", "application/json").
@@ -348,7 +378,7 @@ func ApiCallLOGIN(ctx context.Context, debug bool, args map[string]interface{}, 
 		//SetHeader("canary-mode", "on").
 		SetHeader("microservice", microservice).
 		SetBody(args).
-		Post(dominio + "/api/" + os.Getenv("coreapiVersion") + routing)
+		Post(dominio + "/api/" + os.Getenv("coreApiVersion") + routing)
 
 	if err != nil { // HTTP ERRORE
 		LoggaErrore.Errore = -1
@@ -387,6 +417,33 @@ func ApiCallPUT(ctx context.Context, debug bool, args map[string]interface{}, mi
 	restyLogger := RestyClientLogger{}
 	client.SetLogger(&restyLogger)
 	client.Debug = true
+
+	// Set call timeout
+	client.SetTimeout(5 * time.Minute)
+	// Set retry count to non zero to enable retries
+	client.SetRetryCount(2)
+	// You can override initial retry wait time.
+	// Default is 100 milliseconds.
+	client.SetRetryWaitTime(1 * time.Second)
+	// MaxWaitTime can be overridden as well.
+	// Default is 2 seconds.
+	client.AddRetryCondition(
+		// RetryConditionFunc type is for retry condition function
+		// input: non-nil Response OR request execution error
+		func(r *resty.Response, err error) bool {
+			if err != nil { // HTTP ERROR
+				Logga(ctx, "Resty call retry, error: "+err.Error())
+				return true // ho ricevuto un errore, quindi faccio retry
+			}
+			if r.StatusCode() == http.StatusRequestTimeout {
+				Logga(ctx, "Resty call retry, error timeout")
+				return true
+			} else {
+				return false
+			}
+		},
+	)
+
 	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	res, err := client.R().
 		SetHeader("Content-Type", "application/json").
@@ -395,7 +452,7 @@ func ApiCallPUT(ctx context.Context, debug bool, args map[string]interface{}, mi
 		SetHeader("microservice", microservice).
 		SetAuthToken(token).
 		SetBody(args).
-		Put(dominio + "/api/" + os.Getenv("coreapiVersion") + routing)
+		Put(dominio + "/api/" + os.Getenv("coreApiVersion") + routing)
 
 	if res.StatusCode() != 200 {
 		LoggaErrore.Errore = -1
@@ -471,7 +528,7 @@ func ApiCallDELETE(ctx context.Context, debug bool, args map[string]string, micr
 
 	var resStruct CallGetResponse
 
-	Logga(ctx, dominio+"/api/"+os.Getenv("coreapiVersion")+routing+" - "+microservice)
+	Logga(ctx, dominio+"/api/"+os.Getenv("coreApiVersion")+routing+" - "+microservice)
 
 	//fmt.Println("apiCallDELETE", debug)
 	client := resty.New()
@@ -479,6 +536,33 @@ func ApiCallDELETE(ctx context.Context, debug bool, args map[string]string, micr
 	restyLogger := RestyClientLogger{}
 	client.SetLogger(&restyLogger)
 	client.Debug = true
+
+	// Set call timeout
+	client.SetTimeout(5 * time.Minute)
+	// Set retry count to non zero to enable retries
+	client.SetRetryCount(2)
+	// You can override initial retry wait time.
+	// Default is 100 milliseconds.
+	client.SetRetryWaitTime(1 * time.Second)
+	// MaxWaitTime can be overridden as well.
+	// Default is 2 seconds.
+	client.AddRetryCondition(
+		// RetryConditionFunc type is for retry condition function
+		// input: non-nil Response OR request execution error
+		func(r *resty.Response, err error) bool {
+			if err != nil { // HTTP ERROR
+				Logga(ctx, "Resty call retry, error: "+err.Error())
+				return true // ho ricevuto un errore, quindi faccio retry
+			}
+			if r.StatusCode() == http.StatusRequestTimeout {
+				Logga(ctx, "Resty call retry, error timeout")
+				return true
+			} else {
+				return false
+			}
+		},
+	)
+
 	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	res, err := client.R().
 		SetHeader("Content-Type", "application/json").
@@ -487,7 +571,7 @@ func ApiCallDELETE(ctx context.Context, debug bool, args map[string]string, micr
 		SetHeader("microservice", microservice).
 		SetAuthToken(token).
 		SetQueryParams(args).
-		Delete(dominio + "/api/" + os.Getenv("coreapiVersion") + routing)
+		Delete(dominio + "/api/" + os.Getenv("coreApiVersion") + routing)
 
 	if err != nil { // HTTP ERRORE
 		resStruct.Errore = -1
