@@ -69,8 +69,8 @@ func ApiCallPOST(ctx context.Context, debug bool, args []map[string]interface{},
 	client := resty.New()
 
 	// Set logrus as Logger
-	restyLogger := RestyClientLogger{}
-	client.SetLogger(&restyLogger)
+	//restyLogger := RestyClientLogger{}
+	//client.SetLogger(&restyLogger)
 
 	client.Debug = true
 	// Set call timeout
@@ -185,8 +185,8 @@ func ApiCallGET(ctx context.Context, debug bool, args map[string]string, microse
 	client := resty.New()
 
 	// Set logrus as Logger
-	restyLogger := RestyClientLogger{}
-	client.SetLogger(&restyLogger)
+	//restyLogger := RestyClientLogger{}
+	//client.SetLogger(&restyLogger)
 
 	client.Debug = true
 
@@ -223,6 +223,7 @@ func ApiCallGET(ctx context.Context, debug bool, args map[string]string, microse
 			if _, ok := acceptedStatus[r.StatusCode()]; ok {
 				return false
 			} else {
+				Logga(ctx, "Devo fare retry!!")
 				return true // ho ricevuto uno status che non è tra quelli accepted, quindi faccio retry
 			}
 
@@ -339,8 +340,8 @@ func ApiCallLOGIN(ctx context.Context, debug bool, args map[string]interface{}, 
 	client := resty.New()
 
 	// Set logrus as Logger
-	restyLogger := RestyClientLogger{}
-	client.SetLogger(&restyLogger)
+	//restyLogger := RestyClientLogger{}
+	//client.SetLogger(&restyLogger)
 
 	//client.Debug = debug
 	client.Debug = true
@@ -414,8 +415,8 @@ func ApiCallPUT(ctx context.Context, debug bool, args map[string]interface{}, mi
 
 	client := resty.New()
 	// Set logrus as Logger
-	restyLogger := RestyClientLogger{}
-	client.SetLogger(&restyLogger)
+	//restyLogger := RestyClientLogger{}
+	//client.SetLogger(&restyLogger)
 	client.Debug = true
 
 	// Set call timeout
@@ -533,8 +534,8 @@ func ApiCallDELETE(ctx context.Context, debug bool, args map[string]string, micr
 	//fmt.Println("apiCallDELETE", debug)
 	client := resty.New()
 	// Set logrus as Logger
-	restyLogger := RestyClientLogger{}
-	client.SetLogger(&restyLogger)
+	//restyLogger := RestyClientLogger{}
+	//client.SetLogger(&restyLogger)
 	client.Debug = true
 
 	// Set call timeout
