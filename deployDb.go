@@ -353,6 +353,22 @@ func Comparedb(ctx context.Context, ires IstanzaMicro, dbDataName DbDataConnMs, 
 	Logga(ctx, dbDataName.DataHost+"|"+dbDataName.DataName)
 	//fmt.Println(missingTbls)
 
+	if len(missingTbls) > 0 {
+		for k, _ := range missingTbls {
+			Logga(ctx, "Tabella da aggiungere: "+k)
+		}
+	} else {
+		Logga(ctx, "Nessuna tabella da aggiungere")
+	}
+
+	if len(diffTbls) > 0 {
+		for _, k := range diffTbls {
+			Logga(ctx, "Colonna "+k.Column_name+" da aggiungere alla tabella "+k.Tbl)
+		}
+	} else {
+		Logga(ctx, "Nessuna colonna da aggiungere")
+	}
+
 	// **************************************************************************
 	// **************************************************************************
 	// **************************************************************************
@@ -448,9 +464,9 @@ func Comparedb(ctx context.Context, ires IstanzaMicro, dbDataName DbDataConnMs, 
 
 	return loggaErrore, allCompareSql
 }
-func Compareidx(dbDataName DbDataConnMs, dbMetaName DbMetaConnMs, db *sql.DB, db2 *sql.DB, db3 *sql.DB) (LoggaErrore, []string) {
-	fmt.Println()
-	fmt.Println("Compare Index")
+func Compareidx(ctx context.Context, dbDataName DbDataConnMs, dbMetaName DbMetaConnMs, db *sql.DB, db2 *sql.DB, db3 *sql.DB) (LoggaErrore, []string) {
+	Logga(ctx, "")
+	Logga(ctx, "Compare Index")
 
 	var loggaErrore LoggaErrore
 	loggaErrore.Errore = 0
@@ -459,15 +475,17 @@ func Compareidx(dbDataName DbDataConnMs, dbMetaName DbMetaConnMs, db *sql.DB, db
 
 	dbData := dbDataName.DataName
 
-	fmt.Println("Seek indexes on all tables on " + dbData)
-	fmt.Println("For each table compare indexes between TB_INDEX and on information_schema on " + dbData)
-	fmt.Println()
+	Logga(ctx, "Seek indexes on all tables on "+dbData)
+	Logga(ctx, "For each table compare indexes between TB_INDEX and on information_schema on "+dbData)
+	Logga(ctx, "")
 
+	// get list of tables
 	sqlSel := " SELECT DISTINCT(table_name) as tableName "
 	sqlSel += " FROM information_schema.columns where 1>0 "
 	sqlSel += " and table_schema = '" + dbData + "' "
 	sqlSel += " ORDER BY table_name"
 	//fmt.Println(sqlSel)
+
 	selDB, err := db.Query(sqlSel)
 	if err != nil {
 		loggaErrore.Log = err.Error() + " - " + sqlSel
@@ -479,8 +497,8 @@ func Compareidx(dbDataName DbDataConnMs, dbMetaName DbMetaConnMs, db *sql.DB, db
 	var idxsSrc []CompareIndex
 	var idxsDst []CompareIndex
 	var idxsMiss []CompareIndex
-	for selDB.Next() {
-		err = selDB.Scan(&tableName)
+	for selDB.Next() { // for every table
+		err = selDB.Scan(&tableName) // get table name
 		if err != nil {
 			loggaErrore.Log = err.Error()
 			loggaErrore.Errore = -1
@@ -492,13 +510,14 @@ func Compareidx(dbDataName DbDataConnMs, dbMetaName DbMetaConnMs, db *sql.DB, db
 		if len(codDimArr) > 2 {
 
 			if codDimArr[1] == "ANAG" {
+				//fmt.Println("table name: " + tableName)
 				codDim := strings.Replace(codDimArr[2], "00", "", -1)
 
 				// cerco indici
 				sqlIdx := " select NAME_IDX, UNIQUE_IDX, CODICE_IDX as COLUMN_NAME ,  concat (NAME_IDX,\":\", UNIQUE_IDX,\":\", SEQUENCE_IDX) as tbIndex "
 				sqlIdx += " from TB_INDEX where COD_DIM = '" + codDim + "' "
 				sqlIdx += " order by SEQUENCE_IDX"
-				//fmt.Println(sqlIdx)
+				//fmt.Println("query: " + sqlIdx)
 				selDB2, err := db3.Query(sqlIdx)
 				if err != nil {
 					loggaErrore.Log = err.Error() + " - " + sqlIdx
@@ -531,7 +550,7 @@ func Compareidx(dbDataName DbDataConnMs, dbMetaName DbMetaConnMs, db *sql.DB, db
 				sqlIdx += " and  TABLE_NAME = '" + tableName + "' "
 				sqlIdx += " order by SEQ_IN_INDEX"
 				// fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++++")
-				// fmt.Println(sqlIdx)
+				//fmt.Println("query: " + sqlIdx)
 				selDB2, err = db.Query(sqlIdx)
 				if err != nil {
 					loggaErrore.Log = err.Error()
@@ -559,12 +578,12 @@ func Compareidx(dbDataName DbDataConnMs, dbMetaName DbMetaConnMs, db *sql.DB, db
 		}
 	}
 
-	// fmt.Println(idxsSrc)
-	// fmt.Println(idxsDst)
+	//fmt.Println(idxsSrc)
+	//fmt.Println(idxsDst)
 
 	// FA FEDE CIO CHE E DICHIARATO SU TB_INDEX
-	fmt.Println("Elaborating differences ....")
-	fmt.Println()
+	Logga(ctx, "Elaborating differences ....")
+	Logga(ctx, "")
 	for _, v := range idxsSrc {
 
 		var find bool
@@ -590,8 +609,8 @@ func Compareidx(dbDataName DbDataConnMs, dbMetaName DbMetaConnMs, db *sql.DB, db
 
 	if len(idxsMiss) > 0 {
 
-		fmt.Println("Find unique indexes to drop when adding new one")
-		fmt.Println()
+		Logga(ctx, "Find unique indexes to drop when adding new one")
+		Logga(ctx, "")
 
 		var tbls = make(map[string]string)
 		for _, v := range idxsMiss {
@@ -623,7 +642,7 @@ func Compareidx(dbDataName DbDataConnMs, dbMetaName DbMetaConnMs, db *sql.DB, db
 						idxMiss.Index = v.Index
 						idxMiss.Unique = v.Unique
 						idxMiss.NomeColonna = v.NomeColonna
-						fmt.Println("Append " + idxMiss.NomeIdx + " to list idxsToDrop")
+						Logga(ctx, "Append "+idxMiss.NomeIdx+" to list idxsToDrop")
 						idxsToDrop = append(idxsToDrop, idxMiss)
 					}
 				}
@@ -632,8 +651,8 @@ func Compareidx(dbDataName DbDataConnMs, dbMetaName DbMetaConnMs, db *sql.DB, db
 		}
 
 		if len(idxsToDrop) > 0 {
-			fmt.Println("Dropping Unique Indexes that will be replaced")
-			fmt.Println()
+			Logga(ctx, "Dropping Unique Indexes that will be replaced")
+			Logga(ctx, "")
 			var iddi = make(map[string]string)
 			for _, v := range idxsToDrop {
 				iddi[v.Tbl+"."+v.NomeIdx] = v.Tbl + "." + v.NomeIdx
@@ -660,8 +679,8 @@ func Compareidx(dbDataName DbDataConnMs, dbMetaName DbMetaConnMs, db *sql.DB, db
 
 	}
 
-	fmt.Println("Creating new indexes and editing the different ones")
-	fmt.Println()
+	Logga(ctx, "Creating new indexes and editing the different ones")
+	Logga(ctx, "")
 
 	if len(idxsMiss) > 0 {
 		// fmt.Println(idxsMiss)
@@ -744,8 +763,8 @@ func Compareidx(dbDataName DbDataConnMs, dbMetaName DbMetaConnMs, db *sql.DB, db
 
 		}
 	} else {
-		fmt.Println("Indexes are OK")
-		fmt.Println()
+		Logga(ctx, "Indexes are OK")
+		Logga(ctx, "")
 	}
 
 	return loggaErrore, allCompareIdx
