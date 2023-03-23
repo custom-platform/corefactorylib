@@ -375,7 +375,7 @@ func Comparedb(ctx context.Context, ires IstanzaMicro, dbDataName DbDataConnMs, 
 	// da qui in poi si applica cio che e stato calcolato
 
 	for k, _ := range missingTbls {
-		sqlCompare := "CREATE TABLE " + dbDataDst + "." + k + " like " + dbDataSrc + "." + k
+		sqlCompare := "CREATE TABLE " + k + " like " + dbDataSrc + "." + k
 
 		// popolo un array con tutte le query da fare
 		allCompareSql = append(allCompareSql, sqlCompare)
