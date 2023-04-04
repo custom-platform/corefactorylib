@@ -20,21 +20,21 @@ type RestyClientLogger struct{}
 
 func (cliLogger *RestyClientLogger) Debugf(format string, v ...interface{}) {
 	for _, m := range v {
-		ctx := context.Background()
+	ctx := context.Background()
 		Logga(ctx, m, "info")
 	}
 }
 
 func (cliLogger *RestyClientLogger) Warnf(format string, v ...interface{}) {
 	for _, m := range v {
-		ctx := context.Background()
+	ctx := context.Background()
 		Logga(ctx, m, "warn")
 	}
 }
 
 func (cliLogger *RestyClientLogger) Errorf(format string, v ...interface{}) {
 	for _, m := range v {
-		ctx := context.Background()
+	ctx := context.Background()
 		Logga(ctx, m, "error")
 	}
 }
@@ -69,10 +69,11 @@ func ApiCallPOST(ctx context.Context, debug bool, args []map[string]interface{},
 	client := resty.New()
 
 	// Set logrus as Logger
-	//restyLogger := RestyClientLogger{}
-	//client.SetLogger(&restyLogger)
+	restyLogger := RestyClientLogger{}
+	client.SetLogger(&restyLogger)
 
 	client.Debug = true
+	
 	// Set call timeout
 	client.SetTimeout(5 * time.Minute)
 	// Set retry count to non zero to enable retries
@@ -144,6 +145,7 @@ func ApiCallPOST(ctx context.Context, debug bool, args []map[string]interface{},
 
 	return resStruct
 }
+
 func ApiCallGET(ctx context.Context, debug bool, args map[string]string, microservice, routing, token, dominio string) CallGetResponse {
 
 	Logga(ctx, "apiCallGET")
@@ -185,8 +187,8 @@ func ApiCallGET(ctx context.Context, debug bool, args map[string]string, microse
 	client := resty.New()
 
 	// Set logrus as Logger
-	//restyLogger := RestyClientLogger{}
-	//client.SetLogger(&restyLogger)
+	restyLogger := RestyClientLogger{}
+	client.SetLogger(&restyLogger)
 
 	client.Debug = true
 
@@ -286,6 +288,7 @@ func ApiCallGET(ctx context.Context, debug bool, args map[string]string, microse
 	//LogJson(resStruct)
 	return resStruct
 }
+
 func GetApiHost() string {
 	// devopsProfile, _ := os.LookupEnv("APP_ENV")
 	// urlDevops := ""
@@ -299,6 +302,7 @@ func GetApiHost() string {
 
 	return "https://" + urlDevops
 }
+
 func ApiCallLOGIN(ctx context.Context, debug bool, args map[string]interface{}, microservice, routing, dominio string) (map[string]interface{}, LoggaErrore) {
 
 	//debug = true
@@ -340,8 +344,8 @@ func ApiCallLOGIN(ctx context.Context, debug bool, args map[string]interface{}, 
 	client := resty.New()
 
 	// Set logrus as Logger
-	//restyLogger := RestyClientLogger{}
-	//client.SetLogger(&restyLogger)
+	restyLogger := RestyClientLogger{}
+	client.SetLogger(&restyLogger)
 
 	//client.Debug = debug
 	client.Debug = true
@@ -402,6 +406,7 @@ func ApiCallLOGIN(ctx context.Context, debug bool, args map[string]interface{}, 
 	}
 	return callResponse, LoggaErrore
 }
+
 func ApiCallPUT(ctx context.Context, debug bool, args map[string]interface{}, microservice, routing, token, dominio string) ([]byte, LoggaErrore) {
 
 	if dominio == "" {
@@ -414,9 +419,11 @@ func ApiCallPUT(ctx context.Context, debug bool, args map[string]interface{}, mi
 	LoggaErrore.Errore = 0
 
 	client := resty.New()
+
 	// Set logrus as Logger
-	//restyLogger := RestyClientLogger{}
-	//client.SetLogger(&restyLogger)
+	restyLogger := RestyClientLogger{}
+	client.SetLogger(&restyLogger)
+
 	client.Debug = true
 
 	// Set call timeout
@@ -465,6 +472,7 @@ func ApiCallPUT(ctx context.Context, debug bool, args map[string]interface{}, mi
 	}
 	return res.Body(), LoggaErrore
 }
+
 func GetCoreFactoryToken(ctx context.Context) (string, LoggaErrore) {
 	/* ************************************************************************************************ */
 	// cerco il token di devops
@@ -504,9 +512,8 @@ func GetCoreFactoryToken(ctx context.Context) (string, LoggaErrore) {
 		erro.Log = "token MISSING"
 		return "", erro
 	}
-
-	return "", erro
 }
+
 func ApiCallDELETE(ctx context.Context, debug bool, args map[string]string, microservice, routing, token, dominio string) CallGetResponse {
 
 	if dominio == "" {
@@ -533,9 +540,11 @@ func ApiCallDELETE(ctx context.Context, debug bool, args map[string]string, micr
 
 	//fmt.Println("apiCallDELETE", debug)
 	client := resty.New()
+
 	// Set logrus as Logger
-	//restyLogger := RestyClientLogger{}
-	//client.SetLogger(&restyLogger)
+	restyLogger := RestyClientLogger{}
+	client.SetLogger(&restyLogger)
+
 	client.Debug = true
 
 	// Set call timeout

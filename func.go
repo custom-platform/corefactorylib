@@ -81,7 +81,7 @@ func Logga(ctx context.Context, i interface{}, level ...string) {
 					"JobID":  JobID,
 					"pid":    os.Getpid(),
 					"caller": caller,
-				}).Fatal(text)
+				}).Error(text)
 
 			case "warn":
 				log.WithFields(log.Fields{
@@ -99,6 +99,7 @@ func Logga(ctx context.Context, i interface{}, level ...string) {
 		}
 	}
 }
+
 func Base64decode(str string) string {
 
 	if str != "" {
