@@ -1186,51 +1186,77 @@ func GetCurrentBranchSprint(ctx context.Context, team, tipo string) (string, Log
 
 	return sprintBranch, loggaErrore
 }
-func CreateTag(ctx context.Context, branch, tag, repo string) {
+func CreateTag(ctx context.Context, branch, tag, repo string) LoggaErrore {
 
-	// OTTENGO L' HASH del branch vivo
+	var RetErr LoggaErrore
+	var err error
+	RetErr.Errore = -1
+	RetErr.Log = ""
+
+	// OTTENGO L' HASH dell'ultimo commit fatto sul branch 
 	clientBranch := resty.New()
+	clientBranch.Debug = false
 	respBranch, errBranch := clientBranch.R().
 		EnableTrace().
 		SetBasicAuth(os.Getenv("bitbucketUser"), os.Getenv("bitbucketToken")).
 		Get(os.Getenv("bitbucketHost") + "/repositories/" + os.Getenv("bitbucketProject") + "/" + repo + "/refs/branches/" + branch)
 
-	if errBranch != nil {
-		Logga(ctx, errBranch.Error())
+	if (errBranch == nil) && (respBranch.StatusCode() == 200) {
+		// Get Hash ok
+		var branchRes BranchResStruct
+		err = json.Unmarshal(respBranch.Body(), &branchRes)
+		if err == nil {
+			// STACCO IL TAG
+			Logga(ctx, "In repo: "+ repo +" create Tag: "+ tag +" on commit with hash: " + branchRes.Target.Hash)
+			body := `{"name": "` + tag + `","target": {  "hash": "` + branchRes.Target.Hash + `"}}`
+
+			client := resty.New()
+			client.Debug = false
+			restyResponse, errTag := client.R().
+				SetHeader("Content-Type", "application/json").
+				SetBasicAuth(os.Getenv("bitbucketUser"), os.Getenv("bitbucketToken")).
+				SetBody(body).
+				Post(os.Getenv("bitbucketHost") + "/repositories/" + os.Getenv("bitbucketProject") + "/" + repo + "/refs/tags")
+
+			if (errTag == nil) && (restyResponse.StatusCode() == 201) {
+				// Tag Successfully created
+				//Logga(ctx, "Tag " + tag + " Successfully created")
+				RetErr.Errore = 0
+			} else {
+				var tagCreateRes TagCreateResStruct
+				err = json.Unmarshal(restyResponse.Body(), &tagCreateRes)
+				if err == nil {
+					// If response message contains "tag xxx already exists" go ahead
+					if strings.Contains(tagCreateRes.Error.Message, "already exists") {
+						RetErr.Errore = 0
+					} else {
+						RetErr.Log = tagCreateRes.Error.Message
+					}
+				} else {
+					RetErr.Log = err.Error()
+				}
+			}
+		} else {
+			RetErr.Log = err.Error()
+		}
+	} else {
+		if(errBranch != nil) {
+			RetErr.Log = errBranch.Error()
+		} else {
+			// Get error message from HTTP Body
+			var BodyRes TagCreateResStruct
+			err = json.Unmarshal(respBranch.Body(), &BodyRes)
+			if err == nil {
+				RetErr.Log = BodyRes.Error.Message
+			} else {
+				RetErr.Log = err.Error()
+			}
+		}
 	}
 
-	var branchRes BranchResStruct
-	err := json.Unmarshal(respBranch.Body(), &branchRes)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	//fmt.Println(branchRes.Target.Hash)
-
-	// STACCO IL TAG
-	body := `{"name": "` + tag + `","target": {  "hash": "` + branchRes.Target.Hash + `"}}`
-
-	client := resty.New()
-	client.Debug = false
-	restyResponse, errTag := client.R().
-		SetHeader("Content-Type", "application/json").
-		SetBasicAuth(os.Getenv("bitbucketUser"), os.Getenv("bitbucketToken")).
-		SetBody(body).
-		Post(os.Getenv("bitbucketHost") + "/repositories/" + os.Getenv("bitbucketProject") + "/" + repo + "/refs/tags")
-
-	if errTag != nil {
-		Logga(ctx, errTag.Error())
-	}
-	//fmt.Println(restyResponse)
-
-	var tagCreateRes TagCreateResStruct
-	err = json.Unmarshal(restyResponse.Body(), &tagCreateRes)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	if tagCreateRes.Type == "error" {
-		fmt.Println(repo, tagCreateRes.Error.Message)
-	}
+	return RetErr
 }
+
 func GetFutureToggle(ctx context.Context, cluster string) (bool, LoggaErrore) {
 
 	var loggaErrore LoggaErrore
