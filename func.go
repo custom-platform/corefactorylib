@@ -1902,28 +1902,21 @@ func CheckPodHealth(microservice, versione, namespace, apiHost, apiToken string)
 				if item.Metadata.Name == msDeploy {
 					msMatch = true
 
-					fmt.Println(item.Metadata.Name+" desired: ", item.Spec.Replicas, " - aviable: ", item.Status.ReadyReplicas)
+					fmt.Println(item.Metadata.Name+" desired: ", item.Spec.Replicas, " - available: ", item.Status.ReadyReplicas)
 
 					if item.Spec.Replicas == item.Status.ReadyReplicas {
 						return true, erro
 					}
 				}
-
-				// sto girando a vuoto perche nessun item risponde a cio che cerco
-				if i >= 1 && !msMatch {
-					erro.Errore = -1
-					erro.Log = "nessun item risponde a cio che cerco"
-					return false, erro
-				}
-
 			}
 
 			time.Sleep(10 * time.Second)
-			if i > 25 {
+			if (i > 25 && !msMatch) {
 				erro.Errore = -1
-				erro.Log = "Time Out. Pod is not Running"
+				erro.Log = "Time Out. Pod " + msDeploy + " is not Running"
 				return false, erro
 			}
+			i++
 		}
 	}
 }
