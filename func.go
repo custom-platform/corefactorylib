@@ -479,6 +479,7 @@ func GetMicroserviceDetail(ctx context.Context, team, ims, gitDevMaster, buildVe
 		Logga(ctx, "   !!!   KUBECLUSTER MISSING")
 	}
 	Logga(ctx, "")
+
 	/* ************************************************************************************************ */
 
 	/* ************************************************************************************************ */
@@ -970,6 +971,10 @@ func GetMicroserviceDetail(ctx context.Context, team, ims, gitDevMaster, buildVe
 					if restyKubeEndpointRes.Errore < 0 {
 
 					}
+
+					//Logga(ctx, "argsEndpoint filter:" + argsEndpoint["$fullquery"])
+					//Logga(ctx, restyKubeEndpointRes.BodyArray)
+					//os.Exit(0)
 
 					var endpoints []Endpoint
 					if len(restyKubeEndpointRes.BodyArray) > 0 {

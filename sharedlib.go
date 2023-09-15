@@ -158,6 +158,7 @@ func GetIstanceDetail(ctx context.Context, iresReq IresRequest, canaryProduction
 	// argsClu["$select"] = "XKUBECLUSTER03,XKUBECLUSTER05,XKUBECLUSTER06,XKUBECLUSTER08,XKUBECLUSTER09,XKUBECLUSTER10,"
 	// argsClu["$select"] += "XKUBECLUSTER11,XKUBECLUSTER12,XKUBECLUSTER15,XKUBECLUSTER16,XKUBECLUSTER17,XKUBECLUSTER18,XKUBECLUSTER20,XKUBECLUSTER21,XKUBECLUSTER22"
 	argsClu["center_dett"] = "allviews"
+	argsClu["$filter"] = "equals(TREC,'N')"
 	//["$filter"] = "equals(XKUBECLUSTER03,'" + ims.cluster + "') "
 
 	restyKubeCluRes := ApiCallGET(ctx, false, argsClu, "msdevops", "/devops/KUBECLUSTER", devopsToken, "")
@@ -173,6 +174,9 @@ func GetIstanceDetail(ctx context.Context, iresReq IresRequest, canaryProduction
 	var clu ClusterSt
 	clus := make(map[string]ClusterSt, 0)
 	if len(restyKubeCluRes.BodyArray) > 0 {
+
+		//Logga(ctx, "len: " + strconv.Itoa(int(len(restyKubeCluRes.BodyArray))))
+		//os.Exit(0)
 
 		for _, x := range restyKubeCluRes.BodyArray {
 
@@ -304,37 +308,47 @@ func GetIstanceDetail(ctx context.Context, iresReq IresRequest, canaryProduction
 	}
 	Logga(ctx, "")
 
+
 	/* ************************************************************************************************ */
 	// AMBDOMAIN
 
-	Logga(ctx, "Getting AMBDOMAIN")
+	/* Se sto facendo la deploy di un microservizio, a questa funzione non passo nè refAppCustomerID, nè customerDomain,
+	   perchè sono parametri del monolite.
+	   Quindi questa chiamata è inutile farla perchè non mi restituirà mai nessun risultato */
 
-	argsAmbdomain := make(map[string]string)
-	argsAmbdomain["source"] = "auth-1"
-	argsAmbdomain["$select"] = "XAMBDOMAIN05,XAMBDOMAIN07,XAMBDOMAIN08,XAMBDOMAIN09,XAMBDOMAIN10,XAMBDOMAIN11"
-	argsAmbdomain["center_dett"] = "dettaglio"
-	if refAppCustomerID != "" { // oggi 18 maggio 2021 davide afferma che questo è un pezzotto
-		argsAmbdomain["$filter"] = "equals(XAMBDOMAIN05,'" + refAppCustomerID + "') and "
-	}
-	argsAmbdomain["$filter"] += "  equals(XAMBDOMAIN04,'" + customerDomain + "') "
-	restyAmbdomainRes := ApiCallGET(ctx, false, argsAmbdomain, "msauth", "/core/AMBDOMAIN", devopsToken, "")
-	if restyAmbdomainRes.Errore < 0 {
-		Logga(ctx, restyAmbdomainRes.Log)
-		LoggaErrore.Errore = restyAmbdomainRes.Errore
-		LoggaErrore.Log = restyAmbdomainRes.Log
-		return ims, LoggaErrore
+	if (customerDomain != "") {
+
+		Logga(ctx, "Getting AMBDOMAIN")
+
+		argsAmbdomain := make(map[string]string)
+		argsAmbdomain["source"] = "auth-1"
+		argsAmbdomain["$select"] = "XAMBDOMAIN05,XAMBDOMAIN07,XAMBDOMAIN08,XAMBDOMAIN09,XAMBDOMAIN10,XAMBDOMAIN11"
+		argsAmbdomain["center_dett"] = "dettaglio"
+		if refAppCustomerID != "" { // oggi 18 maggio 2021 davide afferma che questo è un pezzotto
+			argsAmbdomain["$filter"] = "equals(XAMBDOMAIN05,'" + refAppCustomerID + "') and "
+		}
+		argsAmbdomain["$filter"] += "  equals(XAMBDOMAIN04,'" + customerDomain + "') "
+		restyAmbdomainRes := ApiCallGET(ctx, false, argsAmbdomain, "msauth", "/core/AMBDOMAIN", devopsToken, "")
+		if restyAmbdomainRes.Errore < 0 {
+			Logga(ctx, restyAmbdomainRes.Log)
+			LoggaErrore.Errore = restyAmbdomainRes.Errore
+			LoggaErrore.Log = restyAmbdomainRes.Log
+			return ims, LoggaErrore
+		}
+
+		if len(restyAmbdomainRes.BodyJson) > 0 {
+			ims.CustomerSalt = restyAmbdomainRes.BodyJson["XAMBDOMAIN11"].(string)
+			ims.RefappCustomerID = restyAmbdomainRes.BodyJson["XAMBDOMAIN05"].(string)
+			ims.MasterHostData = restyAmbdomainRes.BodyJson["XAMBDOMAIN07"].(string)
+			ims.MasterHostMeta = restyAmbdomainRes.BodyJson["XAMBDOMAIN07"].(string)
+			Logga(ctx, "AMBDOMAIN OK")
+		} else {
+			Logga(ctx, "AMBDOMAIN MISSING")
+		}
+		Logga(ctx, "")
 	}
 
-	if len(restyAmbdomainRes.BodyJson) > 0 {
-		ims.CustomerSalt = restyAmbdomainRes.BodyJson["XAMBDOMAIN11"].(string)
-		ims.RefappCustomerID = restyAmbdomainRes.BodyJson["XAMBDOMAIN05"].(string)
-		ims.MasterHostData = restyAmbdomainRes.BodyJson["XAMBDOMAIN07"].(string)
-		ims.MasterHostMeta = restyAmbdomainRes.BodyJson["XAMBDOMAIN07"].(string)
-		Logga(ctx, "AMBDOMAIN OK")
-	} else {
-		Logga(ctx, "AMBDOMAIN MISSING")
-	}
-	Logga(ctx, "")
+
 	/* ************************************************************************************************ */
 	// KUBEMICROSERV
 	Logga(ctx, "Getting KUBEMICROSERV")
@@ -370,6 +384,7 @@ func GetIstanceDetail(ctx context.Context, iresReq IresRequest, canaryProduction
 		Logga(ctx, "KUBEMICROSERV MISSING")
 	}
 	Logga(ctx, "")
+	
 
 	/* ************************************************************************************************ */
 	// AMB
@@ -409,6 +424,9 @@ func GetIstanceDetail(ctx context.Context, iresReq IresRequest, canaryProduction
 
 	if len(restyKubeAmbRes.BodyArray) > 0 {
 		for _, x := range restyKubeAmbRes.BodyArray {
+
+			//Logga(ctx, "len: " + strconv.Itoa(int(len(restyKubeAmbRes.BodyArray))))
+			//os.Exit(0)
 
 			var attributiMS AttributiMS
 
@@ -461,8 +479,10 @@ func GetIstanceDetail(ctx context.Context, iresReq IresRequest, canaryProduction
 	} else {
 		Logga(ctx, "AMB MISSING")
 	}
-	// os.Exit(0)
+	//os.Exit(0)
 	Logga(ctx, "")
+
+
 	/* ************************************************************************************************ */
 	// DEPLOYLOG
 	Logga(ctx, "Getting DEPLOYLOG")
@@ -487,6 +507,10 @@ func GetIstanceDetail(ctx context.Context, iresReq IresRequest, canaryProduction
 		LoggaErrore.Log = restyDeployRes.Log
 		return ims, LoggaErrore
 	}
+
+	//Logga(ctx, "argsDeploy filter:" + argsDeploy["$filter"])
+	//Logga(ctx, restyDeployRes.BodyArray)
+	//os.Exit(0)
 
 	if len(restyDeployRes.BodyArray) > 0 {
 		for _, x := range restyDeployRes.BodyArray {
@@ -513,6 +537,8 @@ func GetIstanceDetail(ctx context.Context, iresReq IresRequest, canaryProduction
 	//os.Exit(0)
 	return ims, LoggaErrore
 }
+
+
 func UpdateIstanzaMicroservice(ctx context.Context, canaryProduction, versioneMicroservizio string, istanza IstanzaMicro, micros Microservice, utente, enviro, devopsToken string) LoggaErrore {
 
 	var LoggaErrore LoggaErrore
