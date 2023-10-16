@@ -1,58 +1,59 @@
 package lib
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 )
 
-func GitClone(dir, repo string) {
+func GitClone(ctx context.Context, dir, repo string) {
 	comando := "cd " + dir + " && git clone " + repo + " ."
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 }
 
-func GitAdd(dir string) {
+func GitAdd(ctx context.Context, dir string) {
 	comando := "cd " + dir + " && git add . "
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 }
 
-func GitNewbranch(dir, tag string) {
+func GitNewbranch(ctx context.Context, dir, tag string) {
 	comando := "cd " + dir + " && git checkout -b " + tag
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 }
 
-func GitCheckout(dir, tag string) {
+func GitCheckout(ctx context.Context, dir, tag string) {
 
 	comando := "cd " + dir + " && git checkout " + tag
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 }
 
-func GitCommit(dir, message string) {
+func GitCommit(ctx context.Context, dir, message string) {
 	comando := "cd " + dir + " && git commit -m '" + message + "'"
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 }
 
-func GitPush(dir, branch string) {
+func GitPush(ctx context.Context, dir, branch string) {
 	log.Println(branch)
 	comando := "cd " + dir + "; git push -u origin '" + branch + "'"
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 }
 
-func GitInitRepo(nomeRepo string) {
+func GitInitRepo(ctx context.Context, nomeRepo string) {
 	comando := " curl -X POST -v -u \"laszlo72:2TvddWPjJaSdJFTqhUdD\" -H \"Content-Type: application/json\" "
 	comando += " " + os.Getenv("bitbucketHost") + "/repositories/" + os.Getenv("bitbucketProject") + "/" + nomeRepo
 	comando += " -d '{\"scm\": \"git\", \"is_private\": \"true\",\"project\": {\"key\": \"MSF\"}, \"name\":\"" + nomeRepo + "\"}'"
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 }
 
-func GitCreateNewBranchApi(repo, branch string) {
+func GitCreateNewBranchApi(ctx context.Context, repo, branch string) {
 	comando := "curl -X POST -is -u \"laszlo72:2TvddWPjJaSdJFTqhUdD\" -H \"Content-Type: application/json\" "
 	comando += " " + os.Getenv("bitbucketHost") + "/repositories/" + os.Getenv("bitbucketProject") + "/" + repo + "/refs/branches "
 	comando += " -d '{ \"name\": \"" + branch + "\", \"target\": { \"hash\": \"master\" } }'"
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 }
 
-func GitInit(dir, nomeRepo, GitSrcTipo, Namespace string) {
+func GitInit(ctx context.Context, dir, nomeRepo, GitSrcTipo, Namespace string) {
 
 	// // troppo a majale
 	// fmt.Println()
@@ -80,7 +81,7 @@ func GitInit(dir, nomeRepo, GitSrcTipo, Namespace string) {
 
 	// git init
 	comando := "cd " + dir + "; git init "
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 
 	// scrivo il README.md
 	f, err := os.Create(dir + "/README.md")
@@ -107,21 +108,21 @@ func GitInit(dir, nomeRepo, GitSrcTipo, Namespace string) {
 	}
 
 	comando = "git config --global user.email \"p.punzo@custom.it\""
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 	comando = "git config --global user.name \"devops-operator\""
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 
 	// git add .
 	comando = "cd " + dir + "; git add ."
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 
 	// git commit .
 	comando = "cd " + dir + "; git commit -m 'first commit'"
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 
 	// punto a bitbucket
 	comando = "cd " + dir + "; git remote add origin https://" + os.Getenv("bitbucketUser") + ":" + os.Getenv("bitbucketToken") + "@bitbucket.org/" + os.Getenv("bitbucketProject") + "/" + nomeRepo
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 
 	// // pull senno si incazza al secondo giro
 	// comando = "cd " + dir + "; git pull origin master --allow-unrelated-histories"
@@ -129,5 +130,5 @@ func GitInit(dir, nomeRepo, GitSrcTipo, Namespace string) {
 
 	// push in remoto
 	comando = "cd " + dir + "; git push -u origin master"
-	ExecCommand(comando, true)
+	ExecCommand(ctx, comando, true)
 }

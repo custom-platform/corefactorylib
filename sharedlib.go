@@ -707,7 +707,7 @@ func CloudBuils(ctx context.Context, docker, verPad, dirRepo string, swMonolith 
 
 	dir := ""
 	dockerName := ""
-	if swMonolith == true {
+	if swMonolith {
 		dockerName = docker + "-monolith"
 		dir = dirRepo
 	} else {
@@ -721,8 +721,8 @@ func CloudBuils(ctx context.Context, docker, verPad, dirRepo string, swMonolith 
 	} else {
 		cloudNet = " --zone " + os.Getenv("gcloudNetZone")
 	}
-	SwitchProject(os.Getenv("gcloudProjectID"))
-	SwitchCluster(os.Getenv("clusterKube8"), cloudNet)
+	SwitchProject(ctx, os.Getenv("gcloudProjectID"))
+	SwitchCluster(ctx, os.Getenv("clusterKube8"), cloudNet)
 
 	fileCloudBuild := dir + "/cloudBuild.yaml"
 
@@ -731,7 +731,7 @@ func CloudBuils(ctx context.Context, docker, verPad, dirRepo string, swMonolith 
 	cloudBuild := "steps:\n"
 	cloudBuild += "- name: 'gcr.io/cloud-builders/docker'\n"
 	cloudBuild += "  args: ['build', "
-	if swMonolith == true {
+	if swMonolith {
 		cloudBuild += "'--build-arg', 'CLIENTE=" + docker + "', "
 	}
 	cloudBuild += "'-t', '" + os.Getenv("gcloudUrl") + "/" + os.Getenv("gcloudProjectID") + "/" + dockerName + ":" + verPad + "', '.']\n"
@@ -759,7 +759,7 @@ func CloudBuils(ctx context.Context, docker, verPad, dirRepo string, swMonolith 
 	// RUN THE BUILD
 	command := "gcloud builds submit --async --config " + fileCloudBuild + " " + dir
 	Logga(ctx, command)
-	ExecCommand(command, false)
+	ExecCommand(ctx, command, false)
 
 	// SEEK THE BUILD ID
 	command = "gcloud builds list --filter \"tags='" + dockerName + "-" + verPad + "'\" --format=\"json\""

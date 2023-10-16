@@ -149,21 +149,21 @@ func PrintaErroreStreamText(errorLabel, log string) string {
 }
 
 // SwitchCluster ...
-func SwitchCluster(clusterName, cloudNet string) bool {
+func SwitchCluster(ctx context.Context, clusterName, cloudNet string) bool {
 	comando := "gcloud container clusters get-credentials " + clusterName + cloudNet
-	executed := ExecCommand(comando, true)
+	executed := ExecCommand(ctx, comando, true)
 	return executed
 }
 
 // SwitchProject ...
-func SwitchProject(clusterProject string) bool {
+func SwitchProject(ctx context.Context, clusterProject string) bool {
 
 	comando := "gcloud config set project  " + clusterProject
-	executed := ExecCommand(comando, true)
+	executed := ExecCommand(ctx, comando, true)
 	return executed
 }
 
-func ExecCommand(command string, printOutput bool) bool {
+func ExecCommand(ctx context.Context, command string, printOutput bool) bool {
 
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
@@ -181,6 +181,7 @@ func ExecCommand(command string, printOutput bool) bool {
 	stderr := io.MultiWriter(os.Stderr, &stderrBuf)
 	err := cmd.Start()
 	if err != nil {
+		Logga(ctx, "cmd.Start() failed with error: " + err.Error())
 		log.Fatalf("cmd.Start() failed with '%s'\n", err)
 	}
 
@@ -199,6 +200,7 @@ func ExecCommand(command string, printOutput bool) bool {
 	FataleErrore := false
 	if err != nil {
 		if printOutput == true {
+			Logga(ctx, "Exec command errors: "+command+" -> " + err.Error())
 			PrintaErroreStream("Exec command errors: "+command+" -> ", err.Error(), true)
 			PrintaErrore("Exec command errors: "+command+" -> ", err.Error(), "fix errors and try again")
 		}
@@ -206,12 +208,13 @@ func ExecCommand(command string, printOutput bool) bool {
 	}
 	if errStdout != nil || errStderr != nil {
 		if printOutput == true {
+			Logga(ctx, "failed to capture stdout or stderr")
 			log.Fatal("failed to capture stdout or stderr\n")
 		}
 	}
 	outStr := string(stdoutBuf.Bytes())
 	if printOutput == true {
-		fmt.Printf("%s", outStr)
+		Logga(ctx, outStr)
 	}
 	return FataleErrore
 }

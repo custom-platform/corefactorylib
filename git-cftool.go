@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -11,7 +12,7 @@ import (
 	"github.com/briandowns/spinner"
 )
 
-func CloneRepo(dirRepo, newBranchName, userBitbucket, passBitbucket, bitbucketProject, actionBitbucket string, repo RepoListStruct) {
+func CloneRepo(ctx context.Context, dirRepo, newBranchName, userBitbucket, passBitbucket, bitbucketProject, actionBitbucket string, repo RepoListStruct) {
 	err := os.RemoveAll(dirRepo)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -24,7 +25,7 @@ func CloneRepo(dirRepo, newBranchName, userBitbucket, passBitbucket, bitbucketPr
 	fmt.Println(" + Cloning: " + repo.Repo)
 	GitCloneCfTool(dirRepo, repo.Repo, userBitbucket, passBitbucket, bitbucketProject, actionBitbucket)
 	fmt.Println("\n + Checking out: " + repo.Repo + " to " + newBranchName)
-	GitCheckout(dirRepo, newBranchName)
+	GitCheckout(ctx, dirRepo, newBranchName)
 
 	writeStIgnore(dirRepo)
 }
