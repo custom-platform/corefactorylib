@@ -149,20 +149,22 @@ func PrintaErroreStreamText(errorLabel, log string) string {
 }
 
 // SwitchCluster ...
-func SwitchCluster(clusterName, cloudNet string) {
+func SwitchCluster(clusterName, cloudNet string) bool {
 	comando := "gcloud container clusters get-credentials " + clusterName + cloudNet
-	ExecCommand(comando, true)
+	executed := ExecCommand(comando, true)
+	return executed
 }
 
 // SwitchProject ...
-func SwitchProject(clusterProject string) {
+func SwitchProject(clusterProject string) bool {
 
 	comando := "gcloud config set project  " + clusterProject
-	ExecCommand(comando, true)
+	executed := ExecCommand(comando, true)
+	return executed
 }
+
 func ExecCommand(command string, printOutput bool) bool {
 
-	println()
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("cmd", "/C", command)
@@ -213,6 +215,7 @@ func ExecCommand(command string, printOutput bool) bool {
 	}
 	return FataleErrore
 }
+
 func PrintaErrore(errorLabel, log, errorSuggest string) {
 	fmt.Println()
 	fmt.Println("*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*")
@@ -1827,7 +1830,7 @@ func GetCfToolEnv(ctx context.Context, token, dominio string) (map[string]string
 	return env, loggaErrore
 
 }
-func GetDeploymentApi(namespace, apiHost, apiToken string) (DeploymntStatus, LoggaErrore) {
+func GetDeploymentApi(ctx context.Context, namespace, apiHost, apiToken string) (DeploymntStatus, LoggaErrore) {
 
 	var erro LoggaErrore
 	erro.Errore = 0
@@ -1836,6 +1839,14 @@ func GetDeploymentApi(namespace, apiHost, apiToken string) (DeploymntStatus, Log
 
 	clientKUBE := resty.New()
 	clientKUBE.Debug = false
+	// Set retry count to non zero to enable retries
+    clientKUBE.SetRetryCount(3)
+    // You can override initial retry wait time.
+    // Default is 100 milliseconds.
+    clientKUBE.SetRetryWaitTime(5 * time.Second)
+    // MaxWaitTime can be overridden as well.
+    // Default is 2 seconds.
+    clientKUBE.SetRetryMaxWaitTime(20 * time.Second)
 	clientKUBE.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 
 	resKUBE, errKUBE := clientKUBE.R().
@@ -1844,12 +1855,14 @@ func GetDeploymentApi(namespace, apiHost, apiToken string) (DeploymntStatus, Log
 		Get("https://" + apiHost + "/apis/apps/v1/namespaces/" + namespace + "/deployments")
 
 	if errKUBE != nil {
+		Logga(ctx, "GetDeploymentApi error to get deployments in apiHost: " + apiHost + " namespace: " + namespace + " Error: " + errKUBE.Error())
 		erro.Errore = -1
 		erro.Log = errKUBE.Error()
 		return deploy, erro
 	}
 
 	if resKUBE.StatusCode() != 200 {
+		Logga(ctx, "GetDeploymentApi Status Code: " + resKUBE.Status())
 		erro.Errore = -1
 		erro.Log = "API Res Status: " + resKUBE.Status()
 		return deploy, erro
@@ -1858,6 +1871,7 @@ func GetDeploymentApi(namespace, apiHost, apiToken string) (DeploymntStatus, Log
 	a := map[string]interface{}{}
 	errUm := json.Unmarshal(resKUBE.Body(), &a)
 	if errUm != nil {
+		Logga(ctx, "GetDeploymentApi Unmarshal error: " + errUm.Error())
 		erro.Errore = -1
 		erro.Log = errUm.Error()
 		return deploy, erro
@@ -1865,6 +1879,7 @@ func GetDeploymentApi(namespace, apiHost, apiToken string) (DeploymntStatus, Log
 
 	jsonStr, errMa := json.Marshal(a)
 	if errMa != nil {
+		Logga(ctx, "GetDeploymentApi Marshal error: " + errMa.Error())
 		erro.Errore = -1
 		erro.Log = errMa.Error()
 		return deploy, erro
@@ -1872,6 +1887,7 @@ func GetDeploymentApi(namespace, apiHost, apiToken string) (DeploymntStatus, Log
 
 	errUm2 := json.Unmarshal(jsonStr, &deploy)
 	if errUm2 != nil {
+		Logga(ctx, "GetDeploymentApi Unmarshal2 error: " + errUm2.Error())
 		erro.Errore = -1
 		erro.Log = errUm2.Error()
 		return deploy, erro
@@ -1879,7 +1895,7 @@ func GetDeploymentApi(namespace, apiHost, apiToken string) (DeploymntStatus, Log
 
 	return deploy, erro
 }
-func CheckPodHealth(microservice, versione, namespace, apiHost, apiToken string) (bool, LoggaErrore) {
+func CheckPodHealth(ctx context.Context, microservice, versione, namespace, apiHost, apiToken string) (bool, LoggaErrore) {
 
 	var erro LoggaErrore
 	erro.Errore = 0
@@ -1888,7 +1904,7 @@ func CheckPodHealth(microservice, versione, namespace, apiHost, apiToken string)
 	msMatch := false
 	i := 0
 	for {
-		item, err := GetDeploymentApi(namespace, apiHost, apiToken)
+		item, err := GetDeploymentApi(ctx, namespace, apiHost, apiToken)
 		if err.Errore < 0 {
 			erro.Errore = -1
 			erro.Log = err.Log
@@ -1995,7 +2011,7 @@ func DeleteObsoleteObjects(ctx context.Context, ires IstanzaMicro, versione, can
 	//msDeploy := microservice + "-v" + versione
 
 	//LogJson(ires)
-	item, err := GetDeploymentApi(namespace, ires.ApiHost, ires.ApiToken)
+	item, err := GetDeploymentApi(ctx, namespace, ires.ApiHost, ires.ApiToken)
 	//LogJson(item)
 	if err.Errore < 0 {
 		erro.Errore = -1

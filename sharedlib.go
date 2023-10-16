@@ -817,6 +817,7 @@ func CloudBuils(ctx context.Context, docker, verPad, dirRepo string, swMonolith 
 				Logga(ctx, "A telegram message has been sent to you")
 			}
 		}
+		
 		fmt.Println("_##START##_Build Status : " + logRes[0].Status + "_##STOP##_")
 
 		if logRes[0].Status == "SUCCESS" {
