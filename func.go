@@ -157,14 +157,12 @@ func SwitchCluster(ctx context.Context, clusterName, cloudNet string) bool {
 
 // SwitchProject ...
 func SwitchProject(ctx context.Context, clusterProject string) bool {
-
 	comando := "gcloud config set project  " + clusterProject
 	executed := ExecCommand(ctx, comando, true)
 	return executed
 }
 
 func ExecCommand(ctx context.Context, command string, printOutput bool) bool {
-
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("cmd", "/C", command)
@@ -199,23 +197,24 @@ func ExecCommand(ctx context.Context, command string, printOutput bool) bool {
 	err = cmd.Wait()
 	FataleErrore := false
 	if err != nil {
-		if printOutput == true {
-			Logga(ctx, "Exec command errors: "+command+" -> " + err.Error())
+		Logga(ctx, "Exec command: "+command+" error: " + err.Error())
+		Logga(ctx, "Exec output: "+stdoutBuf.String())
+		if printOutput {
 			PrintaErroreStream("Exec command errors: "+command+" -> ", err.Error(), true)
 			PrintaErrore("Exec command errors: "+command+" -> ", err.Error(), "fix errors and try again")
 		}
 		FataleErrore = true
 	}
 	if errStdout != nil || errStderr != nil {
-		if printOutput == true {
-			Logga(ctx, "failed to capture stdout or stderr")
+		Logga(ctx, "failed to capture stdout or stderr")
+		if printOutput {
 			log.Fatal("failed to capture stdout or stderr\n")
 		}
 	}
-	outStr := string(stdoutBuf.Bytes())
-	if printOutput == true {
-		Logga(ctx, outStr)
+	if printOutput {
+		Logga(ctx, stdoutBuf.String())
 	}
+
 	return FataleErrore
 }
 
