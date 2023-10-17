@@ -426,15 +426,16 @@ func ApiCallPUT(ctx context.Context, debug bool, args map[string]interface{}, mi
 
 	client.Debug = true
 
-	// Set call timeout
-	client.SetTimeout(5 * time.Minute)
 	// Set retry count to non zero to enable retries
-	client.SetRetryCount(2)
+	client.SetRetryCount(5)
 	// You can override initial retry wait time.
 	// Default is 100 milliseconds.
-	client.SetRetryWaitTime(1 * time.Second)
+	client.SetRetryWaitTime(5 * time.Second)
+	// Set call timeout
+	client.SetTimeout(5 * time.Minute)
 	// MaxWaitTime can be overridden as well.
 	// Default is 2 seconds.
+	client.SetRetryMaxWaitTime(60 * time.Second)
 	client.AddRetryCondition(
 		// RetryConditionFunc type is for retry condition function
 		// input: non-nil Response OR request execution error
@@ -443,8 +444,8 @@ func ApiCallPUT(ctx context.Context, debug bool, args map[string]interface{}, mi
 				Logga(ctx, "Resty call retry, error: "+err.Error())
 				return true // ho ricevuto un errore, quindi faccio retry
 			}
-			if r.StatusCode() == http.StatusRequestTimeout {
-				Logga(ctx, "Resty call retry, error timeout")
+			if (r.StatusCode() == http.StatusRequestTimeout) || (r.StatusCode() == http.StatusInternalServerError) {
+				Logga(ctx, "Resty call retry, status code: "+ strconv.Itoa(r.StatusCode()))
 				return true
 			} else {
 				return false
@@ -463,13 +464,15 @@ func ApiCallPUT(ctx context.Context, debug bool, args map[string]interface{}, mi
 		Put(dominio + "/api/" + os.Getenv("coreApiVersion") + routing)
 
 	if res.StatusCode() != 200 {
+		Logga(ctx, "[ApiCallPUT] not handled status code: "+strconv.Itoa(res.StatusCode()))
 		LoggaErrore.Errore = -1
 		LoggaErrore.Log = "Token error Cannot get a valid token"
 
 	}
 	if err != nil {
-
+		Logga(ctx, "[ApiCallPUT] error: "+err.Error())
 	}
+
 	return res.Body(), LoggaErrore
 }
 
