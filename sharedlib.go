@@ -750,10 +750,11 @@ func CloudBuils(ctx context.Context, docker, verPad, dirRepo string, swMonolith 
 	if errF != nil {
 		Logga(ctx, errF.Error())
 	}
+	defer f.Close()
+	
 	_, errF = f.WriteString(cloudBuild)
 	if errF != nil {
 		Logga(ctx, errF.Error())
-		f.Close()
 	}
 
 	// RUN THE BUILD
