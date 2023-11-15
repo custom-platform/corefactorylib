@@ -77,7 +77,7 @@ func ApiCallPOST(ctx context.Context, debug bool, args []map[string]interface{},
 	// Set call timeout
 	client.SetTimeout(5 * time.Minute)
 	// Set retry count to non zero to enable retries
-	client.SetRetryCount(2)
+	client.SetRetryCount(3)
 	// You can override initial retry wait time.
 	// Default is 100 milliseconds.
 	client.SetRetryWaitTime(1 * time.Second)
@@ -95,6 +95,11 @@ func ApiCallPOST(ctx context.Context, debug bool, args []map[string]interface{},
 			acceptedStatus[203] = true
 			acceptedStatus[204] = true
 			acceptedStatus[401] = true
+
+			if err != nil { // HTTP ERRORE
+				Logga(ctx, "Resty call retry, error: "+err.Error())
+				return true // ho ricevuto un errore, quindi faccio retry
+			}
 
 			if ok := acceptedStatus[r.StatusCode()]; ok {
 				return false
@@ -197,7 +202,7 @@ func ApiCallGET(ctx context.Context, debug bool, args map[string]string, microse
 	// Set call timeout
 	client.SetTimeout(5 * time.Minute)
 	// Set retry count to non zero to enable retries
-	client.SetRetryCount(2)
+	client.SetRetryCount(3)
 	// You can override initial retry wait time.
 	// Default is 100 milliseconds.
 	client.SetRetryWaitTime(1 * time.Second)
@@ -353,7 +358,7 @@ func ApiCallLOGIN(ctx context.Context, debug bool, args map[string]interface{}, 
 	// Set call timeout
 	client.SetTimeout(5 * time.Minute)
 	// Set retry count to non zero to enable retries
-	client.SetRetryCount(2)
+	client.SetRetryCount(3)
 	// You can override initial retry wait time.
 	// Default is 100 milliseconds.
 	client.SetRetryWaitTime(1 * time.Second)
@@ -367,8 +372,8 @@ func ApiCallLOGIN(ctx context.Context, debug bool, args map[string]interface{}, 
 				Logga(ctx, "Resty call retry, error: "+err.Error())
 				return true // ho ricevuto un errore, quindi faccio retry
 			}
-			if r.StatusCode() == http.StatusRequestTimeout {
-				Logga(ctx, "Resty call retry, error timeout")
+			if (r.StatusCode() == http.StatusRequestTimeout) || (r.StatusCode() == http.StatusInternalServerError) {
+				Logga(ctx, "Resty call retry, status code: "+ strconv.Itoa(r.StatusCode()))
 				return true
 			} else {
 				return false
@@ -427,7 +432,7 @@ func ApiCallPUT(ctx context.Context, debug bool, args map[string]interface{}, mi
 	client.Debug = true
 
 	// Set retry count to non zero to enable retries
-	client.SetRetryCount(5)
+	client.SetRetryCount(3)
 	// You can override initial retry wait time.
 	// Default is 100 milliseconds.
 	client.SetRetryWaitTime(5 * time.Second)
@@ -553,7 +558,7 @@ func ApiCallDELETE(ctx context.Context, debug bool, args map[string]string, micr
 	// Set call timeout
 	client.SetTimeout(5 * time.Minute)
 	// Set retry count to non zero to enable retries
-	client.SetRetryCount(2)
+	client.SetRetryCount(3)
 	// You can override initial retry wait time.
 	// Default is 100 milliseconds.
 	client.SetRetryWaitTime(1 * time.Second)
@@ -567,8 +572,8 @@ func ApiCallDELETE(ctx context.Context, debug bool, args map[string]string, micr
 				Logga(ctx, "Resty call retry, error: "+err.Error())
 				return true // ho ricevuto un errore, quindi faccio retry
 			}
-			if r.StatusCode() == http.StatusRequestTimeout {
-				Logga(ctx, "Resty call retry, error timeout")
+			if (r.StatusCode() == http.StatusRequestTimeout) || (r.StatusCode() == http.StatusInternalServerError) {
+				Logga(ctx, "Resty call retry, status code: "+ strconv.Itoa(r.StatusCode()))
 				return true
 			} else {
 				return false
