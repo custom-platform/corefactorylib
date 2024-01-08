@@ -201,7 +201,7 @@ func Comparedb(ctx context.Context, ires IstanzaMicro, dbDataName DbDataConnMs, 
 	sqlSel += " and table_schema = '" + dbDataSrc + "' "
 	sqlSel += " ORDER BY table_name, column_name"
 	//fmt.Println(sqlSel)
-	// os.Exit(0)
+
 	selDB, err := db.Query(sqlSel)
 	if err != nil {
 		loggaErrore.Log = err.Error() + " - " + sqlSel
@@ -228,8 +228,9 @@ func Comparedb(ctx context.Context, ires IstanzaMicro, dbDataName DbDataConnMs, 
 		srcTbls = append(srcTbls, tbl)
 
 		tablesList += table_name + "\", "
-
 	}
+
+	Logga(ctx, "Num Source Tables: "+strconv.Itoa(len(srcTbls)))
 
 	sqlSel = " SELECT "
 	sqlSel += " table_name, column_name, "
@@ -237,8 +238,8 @@ func Comparedb(ctx context.Context, ires IstanzaMicro, dbDataName DbDataConnMs, 
 	sqlSel += " FROM information_schema.columns where 1>0 "
 	sqlSel += " and table_schema = '" + dbDataDst + "' "
 	sqlSel += " ORDER BY table_name, column_name"
-	// fmt.Println(sqlSel)
-	// os.Exit(0)
+	//fmt.Println(sqlSel)
+
 	selDB, err = db.Query(sqlSel)
 	if err != nil {
 		loggaErrore.Log = err.Error() + " - " + sqlSel
@@ -261,97 +262,78 @@ func Comparedb(ctx context.Context, ires IstanzaMicro, dbDataName DbDataConnMs, 
 		dstTbls = append(dstTbls, tbl)
 	}
 
-	// fmt.Println(srcTbls)
-	// fmt.Println(dstTbls)
-	// os.Exit(0)
+	Logga(ctx, "Num Dest Tables: "+strconv.Itoa(len(dstTbls)))
 
-	//fmt.Println("Get all info")
+	
 	// --------------------------------------------------
 	// RACCOLTO LE INFO PROCEDO ALLA COMPARE
 
 	// mi scorro l'oggetto sorgente e confrontandolo con il secondo
 	// ne creo un terzo con le differnze
 	var diffTbls []CompareDbRes
+	var diffTbl CompareDbRes
 	var strSrc, strDst string
+	var propFind bool
+	var tblFind bool
+	var colFind bool
 
 	// conterra' tutte le tabelle mancanti nel db dest
 	missingTbls := make(map[string]interface{})
 
+	// N.B. Gli array srcTbls e dstTbls contengono tanti elementi quante sono le colonne totali di tutti i metadati da confrontare
 	for _, v := range srcTbls {
 
-		strSrc = v.Tbl + ":" + v.Column_name + ":" + v.Columns
-		//fmt.Println("check: " + v.column_name)
-
-		var find bool
-		var tblFind bool
-		var colFind bool
 		tblFind = false
 		colFind = false
+		propFind = false
 
-		// qui cerco le tabelle mancanti
-		tblFind = false
 		for _, vv := range dstTbls {
 			if v.Tbl == vv.Tbl {
+
+				// Tabella trovata, allora verifico la colonna e le proprietà
 				tblFind = true
-				break
-			}
-		}
-		if tblFind == false {
-			missingTbls[v.Tbl] = 1
-			continue
-		}
 
-		for _, vv := range dstTbls {
+				// mi segno se la colonna esiste
+				if v.Column_name == vv.Column_name {
+					colFind = true
 
-			strDst = vv.Tbl + ":" + vv.Column_name + ":" + vv.Columns
+					// la colonna esiste, verifico se le proprietà sono uguali
+					strSrc = v.Tbl + ":" + v.Column_name + ":" + v.Columns
+					strDst = vv.Tbl + ":" + vv.Column_name + ":" + vv.Columns
 
-			// mi segno se la colonna esiste
-			if v.Column_name == vv.Column_name {
-				colFind = true
-			}
-
-			// mi segno se la colonna è uguale
-			if strSrc == strDst {
-				find = true
-				break
-			} else {
-				find = false
+					if strSrc == strDst {
+						propFind = true
+						break
+					}
+				}
 			}
 		}
 
-		if !colFind {
-			var diffTbl CompareDbRes
+		if !tblFind || !colFind || !propFind {
+
+			// Se non ho trovato la nuova colonna o esiste ma le proprietà non corrispondono, la aggiungo nella lista di quelle da lavorare
 			diffTbl.Tbl = v.Tbl
 			diffTbl.Columns = v.Columns
 			diffTbl.Column_name = v.Column_name
-			diffTbl.Tipo = "ADD"
-
-			diffTbls = append(diffTbls, diffTbl)
-		} else {
-
-			if !find {
-				// // fmt.Println("elimino" + v.column_name)
-				var diffTbl CompareDbRes
-				diffTbl.Tbl = v.Tbl
-				diffTbl.Columns = v.Columns
-				diffTbl.Column_name = v.Column_name
+			if !colFind {
+				diffTbl.Tipo = "ADD"
+			} else {
 				diffTbl.Tipo = "CHANGE"
+			}
+			diffTbls = append(diffTbls, diffTbl)
 
-				diffTbls = append(diffTbls, diffTbl)
+			if !tblFind {
+				_, ok := missingTbls[v.Tbl]
+				if(!ok) {
+					// manca la tabella, la aggiungo
+					missingTbls[v.Tbl] = 1
+				}
 			}
 		}
-
-		// fine ricerca tabelle mancanti
 	}
-	// fmt.Println(diffTbls)
-	// os.Exit(0)
 
-	Logga(ctx, "Get all diff")
-	Logga(ctx, "")
-	Logga(ctx, "STO PER APPLICARE LE DIFF")
-	Logga(ctx, "Change Database Structure on "+dbDataName.DataName)
-	Logga(ctx, dbDataName.DataHost+"|"+dbDataName.DataName)
-	//fmt.Println(missingTbls)
+	Logga(ctx, "Num Diff Tables: "+strconv.Itoa(len(diffTbls)))
+	Logga(ctx, "Change Database Structure on "+dbDataName.DataHost+"|"+dbDataName.DataName)
 
 	if len(missingTbls) > 0 {
 		for k, _ := range missingTbls {
@@ -391,9 +373,6 @@ func Comparedb(ctx context.Context, ires IstanzaMicro, dbDataName DbDataConnMs, 
 		}
 	}
 
-	// fmt.Println(diffTbls)
-	// os.Exit(0)
-
 	var sqlCompare string
 	for _, vv := range diffTbls {
 
@@ -432,22 +411,22 @@ func Comparedb(ctx context.Context, ires IstanzaMicro, dbDataName DbDataConnMs, 
 
 	// se facciamo il compare sui monoliti
 	if ires.Monolith == 1 {
-		//_, err = db.Exec("DROP DATABASE " + dbDataSrc)
-		if err != nil {
-			loggaErrore.Log = err.Error()
-			loggaErrore.Errore = -1
+		// _, err = db.Exec("DROP DATABASE " + dbDataSrc)
+		// if err != nil {
+		// 	loggaErrore.Log = err.Error()
+		// 	loggaErrore.Errore = -1
 
-		} else {
-			Logga(ctx, "DROP DATABASE "+dbDataSrc+"  ok")
-		}
-		//_, err = db.Exec("DROP DATABASE " + dbDataDst)
-		if err != nil {
-			loggaErrore.Log += err.Error() + "\n"
-			loggaErrore.Errore = -1
+		// } else {
+		// 	Logga(ctx, "DROP DATABASE "+dbDataSrc+"  ok")
+		// }
+		// _, err = db.Exec("DROP DATABASE " + dbDataDst)
+		// if err != nil {
+		// 	loggaErrore.Log += err.Error() + "\n"
+		// 	loggaErrore.Errore = -1
 
-		} else {
-			Logga(ctx, "DROP DATABASE "+dbDataSrc+"  ok")
-		}
+		// } else {
+		// 	Logga(ctx, "DROP DATABASE "+dbDataSrc+"  ok")
+		// }
 	} else {
 		_, err = db.Exec("DROP DATABASE " + dbDataSrc)
 		if err != nil {
